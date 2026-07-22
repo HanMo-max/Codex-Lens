@@ -1,0 +1,4 @@
+// Single checked-in source for the shared container identifier.
+// DEVELOPMENT_TEAM is selected per developer and never checked into source.
+CODEXLENS_APP_GROUP_SUFFIX = dev.codexlens.shared
+CODEXLENS_APP_GROUP_ID = $(DEVELOPMENT_TEAM).$(CODEXLENS_APP_GROUP_SUFFIX)

@@ -1,0 +1,362 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A10100000000000000000001 /* CodexLensWidgetHostApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10100000000000000000011 /* CodexLensWidgetHostApp.swift */; };
+		A10100000000000000000002 /* CodexLensWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10100000000000000000012 /* CodexLensWidget.swift */; };
+		A10100000000000000000004 /* CodexLensWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10100000000000000000012 /* CodexLensWidget.swift */; };
+		A10100000000000000000005 /* shared_snapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10100000000000000000015 /* shared_snapshot.swift */; };
+		A10100000000000000000006 /* shared_snapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10100000000000000000015 /* shared_snapshot.swift */; };
+		A10100000000000000000003 /* CodexLensWidgetExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = A10100000000000000000022 /* CodexLensWidgetExtension.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		A10100000000000000000031 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A10100000000000000000040 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A10100000000000000000052;
+			remoteInfo = CodexLensWidgetExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		A10100000000000000000061 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				A10100000000000000000003 /* CodexLensWidgetExtension.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		A10100000000000000000011 /* CodexLensWidgetHostApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexLensWidgetHostApp.swift; sourceTree = "<group>"; };
+		A10100000000000000000012 /* CodexLensWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexLensWidget.swift; sourceTree = "<group>"; };
+		A10100000000000000000013 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A10100000000000000000014 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A10100000000000000000015 /* shared_snapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = shared_snapshot.swift; path = ../src-tauri/src/shared_snapshot.swift; sourceTree = SOURCE_ROOT; };
+		A10100000000000000000016 /* CodexLensAppGroup.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = CodexLensAppGroup.xcconfig; sourceTree = "<group>"; };
+		A10100000000000000000021 /* CodexLensWidgetHost.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CodexLensWidgetHost.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A10100000000000000000022 /* CodexLensWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = CodexLensWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A10100000000000000000071 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A10100000000000000000072 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A10100000000000000000041 = {
+			isa = PBXGroup;
+			children = (
+				A10100000000000000000016 /* CodexLensAppGroup.xcconfig */,
+				A10100000000000000000042 /* CodexLensWidgetHost */,
+				A10100000000000000000043 /* CodexLensWidgetExtension */,
+				A10100000000000000000044 /* Products */,
+				A10100000000000000000015 /* shared_snapshot.swift */,
+			);
+			sourceTree = "<group>";
+		};
+		A10100000000000000000042 /* CodexLensWidgetHost */ = {
+			isa = PBXGroup;
+			children = (
+				A10100000000000000000011 /* CodexLensWidgetHostApp.swift */,
+				A10100000000000000000013 /* Info.plist */,
+			);
+			path = CodexLensWidgetHost;
+			sourceTree = "<group>";
+		};
+		A10100000000000000000043 /* CodexLensWidgetExtension */ = {
+			isa = PBXGroup;
+			children = (
+				A10100000000000000000012 /* CodexLensWidget.swift */,
+				A10100000000000000000014 /* Info.plist */,
+			);
+			path = CodexLensWidgetExtension;
+			sourceTree = "<group>";
+		};
+		A10100000000000000000044 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A10100000000000000000021 /* CodexLensWidgetHost.app */,
+				A10100000000000000000022 /* CodexLensWidgetExtension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A10100000000000000000051 /* CodexLensWidgetHost */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A10100000000000000000081 /* Build configuration list for PBXNativeTarget "CodexLensWidgetHost" */;
+			buildPhases = (
+				A10100000000000000000091 /* Sources */,
+				A10100000000000000000071 /* Frameworks */,
+				A10100000000000000000061 /* Embed App Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A10100000000000000000032 /* PBXTargetDependency */,
+			);
+			name = CodexLensWidgetHost;
+			productName = CodexLensWidgetHost;
+			productReference = A10100000000000000000021 /* CodexLensWidgetHost.app */;
+			productType = "com.apple.product-type.application";
+		};
+		A10100000000000000000052 /* CodexLensWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A10100000000000000000082 /* Build configuration list for PBXNativeTarget "CodexLensWidgetExtension" */;
+			buildPhases = (
+				A10100000000000000000092 /* Sources */,
+				A10100000000000000000072 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = CodexLensWidgetExtension;
+			productName = CodexLensWidgetExtension;
+			productReference = A10100000000000000000022 /* CodexLensWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A10100000000000000000040 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastSwiftUpdateCheck = 2660;
+				LastUpgradeCheck = 2660;
+				TargetAttributes = {
+					A10100000000000000000051 = {
+						CreatedOnToolsVersion = 26.6;
+						SystemCapabilities = {
+							com.apple.ApplicationGroups = {
+								enabled = 1;
+							};
+						};
+					};
+					A10100000000000000000052 = {
+						CreatedOnToolsVersion = 26.6;
+						SystemCapabilities = {
+							com.apple.ApplicationGroups = {
+								enabled = 1;
+							};
+						};
+					};
+				};
+			};
+			buildConfigurationList = A10100000000000000000080 /* Build configuration list for PBXProject "CodexLensWidgets" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+				"zh-Hans",
+			);
+			mainGroup = A10100000000000000000041;
+			productRefGroup = A10100000000000000000044 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A10100000000000000000051 /* CodexLensWidgetHost */,
+				A10100000000000000000052 /* CodexLensWidgetExtension */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A10100000000000000000091 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10100000000000000000001 /* CodexLensWidgetHostApp.swift in Sources */,
+				A10100000000000000000004 /* CodexLensWidget.swift in Sources */,
+				A10100000000000000000005 /* shared_snapshot.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A10100000000000000000092 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10100000000000000000002 /* CodexLensWidget.swift in Sources */,
+				A10100000000000000000006 /* shared_snapshot.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A10100000000000000000032 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A10100000000000000000052 /* CodexLensWidgetExtension */;
+			targetProxy = A10100000000000000000031 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		A101000000000000000000A0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A10100000000000000000016 /* CodexLensAppGroup.xcconfig */;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				ENABLE_PREVIEWS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				SDKROOT = macosx;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		A101000000000000000000A1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A10100000000000000000016 /* CodexLensAppGroup.xcconfig */;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		A101000000000000000000B0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A10100000000000000000016 /* CodexLensAppGroup.xcconfig */;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_ENTITLEMENTS = CodexLensWidgetHost/CodexLensWidgetHost.entitlements;
+				INFOPLIST_FILE = CodexLensWidgetHost/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.codexlens.desktop;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		A101000000000000000000B1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A10100000000000000000016 /* CodexLensAppGroup.xcconfig */;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_ENTITLEMENTS = CodexLensWidgetHost/CodexLensWidgetHost.entitlements;
+				INFOPLIST_FILE = CodexLensWidgetHost/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.codexlens.desktop;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		A101000000000000000000C0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A10100000000000000000016 /* CodexLensAppGroup.xcconfig */;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_ENTITLEMENTS = CodexLensWidgetExtension/CodexLensWidgetExtension.entitlements;
+				ENABLE_APP_SANDBOX = YES;
+				INFOPLIST_FILE = CodexLensWidgetExtension/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.codexlens.desktop.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG CODEX_LENS_WIDGET_EXTENSION";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		A101000000000000000000C1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = A10100000000000000000016 /* CodexLensAppGroup.xcconfig */;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_ENTITLEMENTS = CodexLensWidgetExtension/CodexLensWidgetExtension.entitlements;
+				ENABLE_APP_SANDBOX = YES;
+				INFOPLIST_FILE = CodexLensWidgetExtension/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				PRODUCT_BUNDLE_IDENTIFIER = dev.codexlens.desktop.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = CODEX_LENS_WIDGET_EXTENSION;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A10100000000000000000080 /* Build configuration list for PBXProject "CodexLensWidgets" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A101000000000000000000A0 /* Debug */,
+				A101000000000000000000A1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A10100000000000000000081 /* Build configuration list for PBXNativeTarget "CodexLensWidgetHost" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A101000000000000000000B0 /* Debug */,
+				A101000000000000000000B1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A10100000000000000000082 /* Build configuration list for PBXNativeTarget "CodexLensWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A101000000000000000000C0 /* Debug */,
+				A101000000000000000000C1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A10100000000000000000040 /* Project object */;
+}
