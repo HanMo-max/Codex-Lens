@@ -1,84 +1,22 @@
-# GitHub 发布与分享清单
+# GitHub 更新与发布清单
 
-## 需要提前安装或准备什么
+## 更新源码
 
-本机 Windows 不需要安装 macOS 构建工具，也不能直接构建 macOS 安装包。macOS 包由 GitHub Actions 的 `macos-latest` runner 构建。
+1. 确认 origin 指向 `https://github.com/HanMo-max/Codex-Lens.git`，拉取并核对远端 `main`。
+2. 同步最新代码，首页明确说明 **桌面组件**和**状态栏胶囊**，分别说明平台、数据窗口与交互。
+3. 执行前端测试、前端构建、Rust 测试；在活动 macOS 图形会话运行 `scripts/check-status-popover.sh`。
+4. 检查 diff、敏感信息与待提交清单。构建产物、个人截图、凭据、证书和 provisioning profile 不加入源码提交。
+5. 提交并正常推送到 `main`，核对 GitHub 远端提交与 CI 状态。
 
-本机需要：
+推送 `main` 只更新源码和文档，不创建新 Release。
 
-- Git
-- Node.js 20+
-- Rust stable
-- npm 依赖已安装
+## 发布下载版本
 
-GitHub 需要：
+当前 `.github/workflows/release.yml` 在 `v*` tag 推送后构建并公开发布 Release，配置为 `draft: false`。执行 tag 推送前，应完成以下检查：
 
-- 一个 GitHub 仓库
-- GitHub Actions 已启用
-- 代码已推送到默认分支
-
-macOS Universal 构建需要的 Rust targets 已经在 CI/release workflow 中自动安装：
-
-```bash
-rustup target add aarch64-apple-darwin x86_64-apple-darwin
-```
-
-你不需要在 Windows 本机安装这两个 target。
-
-## 第一次上传到 GitHub
-
-如果本地仓库还没有 remote，先在 GitHub 创建一个空仓库，然后执行：
-
-```bash
-git remote add origin https://github.com/<owner>/<repo>.git
-git branch -M main
-git add .
-git commit -m "Prepare Windows and macOS unsigned release"
-git push -u origin main
-```
-
-如果已经有 remote，只需要：
-
-```bash
-git add .
-git commit -m "Prepare Windows and macOS unsigned release"
-git push origin main
-```
-
-## 生成可分享版本
-
-推送 `v*` tag 会触发 release workflow：
-
-```bash
-git tag v0.1.0
-git push origin v0.1.0
-```
-
-构建完成后，到 GitHub 仓库的 Releases 页面检查 draft release。附件应包含：
-
-- `quota-float-windows-unsigned.zip`
-- `quota-float-macos-universal-unsigned.zip`
-
-确认无误后点击 Publish release，然后把 Release 链接发给用户。
-
-## 发给 Mac 用户时的说明
-
-当前 macOS 包是 unsigned 包。用户首次打开可能会被 Gatekeeper 拦截，可以这样打开：
-
-1. 下载 `quota-float-macos-universal-unsigned.zip`。
-2. 解压后把应用拖到 Applications 或任意测试目录。
-3. 右键点击应用，选择 Open。
-4. 在系统提示里再次选择 Open。
-5. 如果仍被拦截，到 System Settings -> Privacy & Security 里允许打开。
-
-## 以后公开分发还需要什么
-
-如果要面向非技术用户公开分发，建议补：
-
-- Windows 代码签名证书。
-- Apple Developer ID Application 证书。
-- Apple Team ID。
-- Apple app-specific password。
-- GitHub Secrets 中的签名和公证配置。
-
-这些账号、证书和密码不能由代码生成，需要项目所有者申请或购买。
+- 明确发布版本和说明，写出桌面组件与状态栏胶囊的支持边界。
+- 前端、Rust 与对应平台构建通过，实机验证结果已记录。
+- 当前工作流生成 `quota-float-windows-unsigned.zip` 与 `quota-float-macos-universal-unsigned.zip`。
+- 普通 macOS Tauri 包提供原生状态栏胶囊，但不自动包含 WidgetKit 桌面组件；Windows 包不提供这两项 macOS 原生功能。
+- 若发布包含桌面组件的整合包，先单独验证主应用与嵌入扩展的签名、Team、App Group、安装及分发方式。详见 [发布说明](RELEASE.md)。
+- Release 附件与文字描述一致，未将本地构建或 fixture 测试描述为公开安装包验收通过。

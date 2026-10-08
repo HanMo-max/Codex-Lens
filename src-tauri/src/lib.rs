@@ -1,17 +1,22 @@
 mod codex;
 mod models;
+mod status_bar;
 
 use std::{
-    ffi::{c_char, CString},
     fs,
     sync::{Mutex, OnceLock},
     time::Duration,
 };
+#[cfg(target_os = "macos")]
+use std::ffi::{c_char, c_void, CString};
 
 use models::{LimitWindow, ProviderSnapshot};
+use status_bar::{
+    format_status_bar, merge_status_bar_snapshot, DataStatus, StatusBarPresentation,
+};
 use tauri::{
-    menu::{CheckMenuItem, Menu, MenuItem},
-    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
+    menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem},
+    tray::TrayIconBuilder,
     AppHandle, Manager,
 };
 use tauri_plugin_autostart::{MacosLauncher, ManagerExt};
@@ -24,6 +29,22 @@ unsafe extern "C" {
     fn codex_lens_write_widget_snapshot(bytes: *const u8, length: usize) -> i32;
     fn codex_lens_start_power_observer(callback: extern "C" fn());
     fn codex_lens_log_refresh_event(message: *const c_char);
+    fn codex_lens_status_popover_configure(
+        status_item: *mut c_void,
+        callback: extern "C" fn(i32),
+    );
+    fn codex_lens_status_popover_update(
+        title: *const c_char,
+        percentage: *const c_char,
+        window_name: *const c_char,
+        progress: f64,
+        model_name: *const c_char,
+        reset_time: *const c_char,
+        status_text: *const c_char,
+        status_code: i32,
+        start_at_login: i32,
+    );
+    fn codex_lens_status_popover_set_start_at_login(enabled: i32);
 }
 
 #[cfg(target_os = "macos")]
@@ -37,10 +58,55 @@ fn reload_widget_timelines() {}
 
 #[cfg(target_os = "macos")]
 static POWER_OBSERVER_APP: OnceLock<AppHandle> = OnceLock::new();
+#[cfg(target_os = "macos")]
+static STATUS_POPOVER_APP: OnceLock<AppHandle> = OnceLock::new();
 
 struct AppState {
     client: reqwest::Client,
     refresh_task: Mutex<Option<tauri::async_runtime::JoinHandle<()>>>,
+    tray_display: Mutex<TrayDisplayState>,
+    tray_menu: Mutex<Option<TrayMenuItems>>,
+}
+
+struct TrayDisplayState {
+    last_good: Option<ProviderSnapshot>,
+    status: DataStatus,
+}
+
+impl Default for TrayDisplayState {
+    fn default() -> Self {
+        Self {
+            last_good: None,
+            status: DataStatus::Unavailable,
+        }
+    }
+}
+
+#[derive(Clone)]
+struct TrayMenuItems {
+    quota: MenuItem<tauri::Wry>,
+    window: MenuItem<tauri::Wry>,
+    model: MenuItem<tauri::Wry>,
+    reset: MenuItem<tauri::Wry>,
+    status: MenuItem<tauri::Wry>,
+    refresh: MenuItem<tauri::Wry>,
+    autostart: CheckMenuItem<tauri::Wry>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum StatusPopoverAction {
+    Refresh,
+    ToggleStartAtLogin,
+    Quit,
+}
+
+fn status_popover_action_from_code(code: i32) -> Option<StatusPopoverAction> {
+    match code {
+        0 => Some(StatusPopoverAction::Refresh),
+        1 => Some(StatusPopoverAction::ToggleStartAtLogin),
+        2 => Some(StatusPopoverAction::Quit),
+        _ => None,
+    }
 }
 
 #[cfg(target_os = "macos")]
@@ -53,6 +119,117 @@ fn log_refresh_event(message: &str) {
 #[cfg(not(target_os = "macos"))]
 fn log_refresh_event(message: &str) {
     eprintln!("{message}");
+}
+
+fn update_start_at_login_controls(app: &AppHandle, enabled: bool) {
+    if let Some(state) = app.try_state::<AppState>() {
+        if let Some(menu) = state
+            .tray_menu
+            .lock()
+            .ok()
+            .and_then(|items| items.clone())
+        {
+            let _ = menu.autostart.set_checked(enabled);
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    unsafe {
+        codex_lens_status_popover_set_start_at_login(i32::from(enabled));
+    }
+}
+
+fn toggle_start_at_login(app: &AppHandle) {
+    let manager = app.autolaunch();
+    let enabled = manager.is_enabled().unwrap_or(false);
+    let result = if enabled {
+        manager.disable()
+    } else {
+        manager.enable()
+    };
+    match result {
+        Ok(()) => update_start_at_login_controls(app, !enabled),
+        Err(_) => {
+            update_start_at_login_controls(
+                app,
+                app.autolaunch().is_enabled().unwrap_or(enabled),
+            );
+            eprintln!("autostart update failed");
+        }
+    }
+}
+
+#[cfg(target_os = "macos")]
+extern "C" fn handle_status_popover_action(code: i32) {
+    let Some(app) = STATUS_POPOVER_APP.get() else {
+        return;
+    };
+    match status_popover_action_from_code(code) {
+        Some(StatusPopoverAction::Refresh) => request_refresh(app, "manual-popover"),
+        Some(StatusPopoverAction::ToggleStartAtLogin) => toggle_start_at_login(app),
+        Some(StatusPopoverAction::Quit) => app.exit(0),
+        None => {}
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn configure_status_popover(
+    tray: &tauri::tray::TrayIcon<tauri::Wry>,
+    app: &AppHandle,
+) -> tauri::Result<()> {
+    let _ = STATUS_POPOVER_APP.set(app.clone());
+    let status_item = tray.with_inner_tray_icon(|inner| {
+        inner
+            .ns_status_item()
+            .map(|status_item| (&**status_item as *const _) as usize)
+    })?;
+    if let Some(status_item) = status_item {
+        unsafe {
+            codex_lens_status_popover_configure(
+                status_item as *mut c_void,
+                handle_status_popover_action,
+            );
+        }
+    }
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn update_status_popover(
+    presentation: &StatusBarPresentation,
+    start_at_login: bool,
+) {
+    fn bridge_string(value: &str) -> CString {
+        CString::new(value.replace('\0', " ")).expect("sanitized status text must be C-compatible")
+    }
+
+    let title = bridge_string(&presentation.title);
+    let percentage = bridge_string(&presentation.popover_percentage_text);
+    let window_name = bridge_string(&presentation.popover_window_text);
+    let model_name = bridge_string(&presentation.popover_model_text);
+    let reset_time = bridge_string(&presentation.popover_reset_text);
+    let status_text = bridge_string(&presentation.popover_status_text);
+
+    unsafe {
+        codex_lens_status_popover_update(
+            title.as_ptr(),
+            percentage.as_ptr(),
+            window_name.as_ptr(),
+            presentation.popover_progress,
+            model_name.as_ptr(),
+            reset_time.as_ptr(),
+            status_text.as_ptr(),
+            presentation.popover_status_code,
+            i32::from(start_at_login),
+        );
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+fn update_status_popover(
+    _presentation: &StatusBarPresentation,
+    _start_at_login: bool,
+) {
 }
 
 #[cfg(target_os = "macos")]
@@ -170,6 +347,66 @@ fn build_http_client() -> reqwest::Client {
         .expect("static HTTP client configuration must be valid")
 }
 
+fn update_tray_ui(app: &AppHandle, presentation: &StatusBarPresentation) {
+    if let Some(tray) = app.tray_by_id("main") {
+        let _ = tray.set_title(Some(presentation.title.as_str()));
+        let _ = tray.set_tooltip(Some(presentation.tooltip.as_str()));
+    }
+    let start_at_login = app.autolaunch().is_enabled().unwrap_or(false);
+    update_status_popover(presentation, start_at_login);
+
+    let Some(state) = app.try_state::<AppState>() else {
+        return;
+    };
+    // Clone the handles before dispatching their updates to the main thread.
+    // Holding this mutex while a menu callback runs could otherwise deadlock.
+    let menu = state
+        .tray_menu
+        .lock()
+        .ok()
+        .and_then(|items| items.clone());
+    let Some(menu) = menu else {
+        return;
+    };
+    let _ = menu.quota.set_text(&presentation.quota_text);
+    let _ = menu.window.set_text(&presentation.window_text);
+    let _ = menu.model.set_text(&presentation.model_text);
+    let _ = menu.reset.set_text(&presentation.reset_text);
+    let _ = menu.status.set_text(&presentation.status_text);
+    let _ = menu.refresh.set_text(&presentation.refresh_text);
+}
+
+fn mark_tray_refreshing(app: &AppHandle) {
+    let Some(state) = app.try_state::<AppState>() else {
+        return;
+    };
+    let presentation = {
+        let Ok(mut display) = state.tray_display.lock() else {
+            return;
+        };
+        display.status = DataStatus::Refreshing;
+        format_status_bar(display.last_good.as_ref(), display.status)
+    };
+    update_tray_ui(app, &presentation);
+}
+
+fn apply_tray_snapshot(app: &AppHandle, snapshot: &ProviderSnapshot) {
+    let Some(state) = app.try_state::<AppState>() else {
+        return;
+    };
+    let presentation = {
+        let Ok(mut display) = state.tray_display.lock() else {
+            return;
+        };
+        let (last_good, status) =
+            merge_status_bar_snapshot(display.last_good.take(), snapshot);
+        display.last_good = last_good;
+        display.status = status;
+        format_status_bar(display.last_good.as_ref(), display.status)
+    };
+    update_tray_ui(app, &presentation);
+}
+
 async fn fetch_and_publish(app: &AppHandle, reason: &'static str) {
     let should_log_success = reason != "periodic";
     if should_log_success {
@@ -197,6 +434,7 @@ async fn fetch_and_publish(app: &AppHandle, reason: &'static str) {
     };
     let status = snapshot.status.clone();
     persist_widget_snapshot(&snapshot);
+    apply_tray_snapshot(app, &snapshot);
     if should_log_success || status != "ok" {
         log_refresh_event(&format!("refresh-finish reason={reason} status={status}"));
     }
@@ -210,6 +448,11 @@ fn request_refresh(app: &AppHandle, reason: &'static str) {
     let Some(state) = app.try_state::<AppState>() else {
         return;
     };
+    if reason != "periodic" {
+        // Update the native UI before taking the task lock. Menu callbacks run
+        // on the main thread, so no UI dispatch should wait while holding it.
+        mark_tray_refreshing(app);
+    }
     let Ok(mut current_task) = state.refresh_task.lock() else {
         log_refresh_event("refresh-rejected reason=poisoned-task-state");
         return;
@@ -253,7 +496,23 @@ fn start_background_sync(app: AppHandle) {
     });
 }
 
+fn refresh_reason_for_tray_interaction(menu_item_id: Option<&str>) -> Option<&'static str> {
+    match menu_item_id {
+        Some("refresh") => Some("manual-menu"),
+        None | Some(_) => None,
+    }
+}
+
 fn setup_tray(app: &tauri::App) -> tauri::Result<()> {
+    let initial = format_status_bar(None, DataStatus::Unavailable);
+    let quota = MenuItem::with_id(app, "quota-status", &initial.quota_text, false, None::<&str>)?;
+    let window =
+        MenuItem::with_id(app, "window-status", &initial.window_text, false, None::<&str>)?;
+    let model = MenuItem::with_id(app, "model-status", &initial.model_text, false, None::<&str>)?;
+    let reset = MenuItem::with_id(app, "reset-status", &initial.reset_text, false, None::<&str>)?;
+    let status =
+        MenuItem::with_id(app, "sync-status", &initial.status_text, false, None::<&str>)?;
+    let status_separator = PredefinedMenuItem::separator(app)?;
     let refresh = MenuItem::with_id(app, "refresh", "Refresh now", true, None::<&str>)?;
     let autostart_enabled = app.autolaunch().is_enabled().unwrap_or(false);
     let autostart = CheckMenuItem::with_id(
@@ -264,38 +523,63 @@ fn setup_tray(app: &tauri::App) -> tauri::Result<()> {
         autostart_enabled,
         None::<&str>,
     )?;
+    let action_separator = PredefinedMenuItem::separator(app)?;
     let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
-    let menu = Menu::with_items(app, &[&refresh, &autostart, &quit])?;
+    let menu = Menu::with_items(
+        app,
+        &[
+            &quota,
+            &window,
+            &model,
+            &reset,
+            &status,
+            &status_separator,
+            &refresh,
+            &autostart,
+            &action_separator,
+            &quit,
+        ],
+    )?;
     let mut builder = TrayIconBuilder::with_id("main")
         .menu(&menu)
-        .tooltip("Codex Lens");
+        .show_menu_on_left_click(false)
+        .title(&initial.title)
+        .tooltip(&initial.tooltip);
     if let Some(icon) = app.default_window_icon() {
         builder = builder.icon(icon.clone());
     }
 
-    let autostart_menu = autostart.clone();
-    builder
-        .on_menu_event(move |app, event| match event.id.as_ref() {
-            "refresh" => request_refresh(app, "manual-menu"),
-            "autostart" => {
-                let manager = app.autolaunch();
-                let enabled = manager.is_enabled().unwrap_or(false);
-                let result = if enabled {
-                    manager.disable()
-                } else {
-                    manager.enable()
-                };
-                match result {
-                    Ok(()) => {
-                        let _ = autostart_menu.set_checked(!enabled);
-                    }
-                    Err(_) => eprintln!("autostart update failed"),
-                }
+    let tray = builder
+        .on_menu_event(move |app, event| {
+            let menu_id = event.id.as_ref();
+            if let Some(reason) = refresh_reason_for_tray_interaction(Some(menu_id)) {
+                request_refresh(app, reason);
+                return;
             }
-            "quit" => app.exit(0),
-            _ => {}
+
+            match menu_id {
+                "autostart" => toggle_start_at_login(app),
+                "quit" => app.exit(0),
+                _ => {}
+            }
         })
         .build(app)?;
+    if let Some(state) = app.try_state::<AppState>() {
+        if let Ok(mut items) = state.tray_menu.lock() {
+            *items = Some(TrayMenuItems {
+                quota,
+                window,
+                model,
+                reset,
+                status,
+                refresh,
+                autostart,
+            });
+        }
+    }
+    #[cfg(target_os = "macos")]
+    configure_status_popover(&tray, app.handle())?;
+    update_tray_ui(app.handle(), &initial);
     Ok(())
 }
 
@@ -327,24 +611,16 @@ pub fn run() {
             app.manage(AppState {
                 client: build_http_client(),
                 refresh_task: Mutex::new(None),
+                tray_display: Mutex::new(TrayDisplayState::default()),
+                tray_menu: Mutex::new(None),
             });
 
             start_power_observer(app.handle());
-            start_background_sync(app.handle().clone());
             if setup_tray(app).is_err() {
                 eprintln!("tray setup failed");
             }
+            start_background_sync(app.handle().clone());
             Ok(())
-        })
-        .on_tray_icon_event(|app, event| {
-            if let TrayIconEvent::Click {
-                button: MouseButton::Left,
-                button_state: MouseButtonState::Up,
-                ..
-            } = event
-            {
-                request_refresh(app, "tray-click");
-            }
         })
         .build(tauri::generate_context!())
         .expect("failed to build Codex Lens");
@@ -417,5 +693,35 @@ mod tests {
         assert!(!should_skip_refresh("manual-menu", true));
         assert!(!should_skip_refresh("system-wake", true));
         assert!(!should_skip_refresh("app-reopen", true));
+    }
+
+    #[test]
+    fn opening_tray_menu_does_not_refresh_but_refresh_item_does() {
+        assert_eq!(refresh_reason_for_tray_interaction(None), None);
+        assert_eq!(
+            refresh_reason_for_tray_interaction(Some("quota-status")),
+            None
+        );
+        assert_eq!(
+            refresh_reason_for_tray_interaction(Some("refresh")),
+            Some("manual-menu")
+        );
+    }
+
+    #[test]
+    fn native_popover_action_codes_map_without_touching_quota_logic() {
+        assert_eq!(
+            status_popover_action_from_code(0),
+            Some(StatusPopoverAction::Refresh)
+        );
+        assert_eq!(
+            status_popover_action_from_code(1),
+            Some(StatusPopoverAction::ToggleStartAtLogin)
+        );
+        assert_eq!(
+            status_popover_action_from_code(2),
+            Some(StatusPopoverAction::Quit)
+        );
+        assert_eq!(status_popover_action_from_code(99), None);
     }
 }

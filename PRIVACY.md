@@ -10,12 +10,14 @@ Codex Lens is designed to be local-first and minimal.
 
 ## What It Stores
 
-Codex Lens stores only widget preferences in its own application config directory:
+Codex Lens may store display preferences in its own application config directory:
 
 - locked state
 - always-on-top state
 - pinned provider
 - auto-rotate interval
+
+The integrated macOS desktop widget also uses a display-only snapshot and a last-known-good snapshot in the shared App Group container. These contain the active model, normalized quota windows, reset and update timestamps, source, and stale state. The menu bar status capsule keeps its last valid five-hour display state in memory. The app may also store a background-sync setup marker in its application config directory.
 
 It does not copy or persist Codex tokens, account IDs, raw quota responses, user prompts, chat history, or local file paths.
 

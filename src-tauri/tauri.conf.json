@@ -17,8 +17,8 @@
     "active": true,
     "targets": "all",
     "category": "Utility",
-    "shortDescription": "Codex quota widget data service",
-    "longDescription": "A native Codex quota and model status monitor with an integrated macOS desktop widget.",
+    "shortDescription": "Codex quota desktop widget and menu bar capsule",
+    "longDescription": "A native Codex quota and model status monitor with an integrated macOS desktop widget and menu bar status capsule.",
     "copyright": "Copyright (c) 2026 Codex Lens contributors; includes work from Quota Float contributors",
     "macOS": {
       "minimumSystemVersion": "14.0",

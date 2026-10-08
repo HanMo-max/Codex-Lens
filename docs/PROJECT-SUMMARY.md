@@ -2,60 +2,43 @@
 
 ## 一句话定位
 
-Codex Lens 是一个 Tauri 2 桌面工具，用本机 Codex Desktop 登录态只读查询 Codex 额度，并以应用界面和集成的 macOS WidgetKit 小组件展示可用的 5 小时额度、每周额度、重置时间、重置机会和会员类型。
+Codex Lens 是一个本地运行的 macOS 额度工具，同时提供**桌面组件**和**状态栏胶囊**，使用本机 Codex Desktop 登录态只读查询当前模型、额度与重置时间。项目独立维护，非 OpenAI 官方产品。
 
-## 当前技术栈
+## 当前功能
 
-- 前端：React 19、TypeScript、Vite、Phosphor Icons。
-- 桌面壳：Tauri 2、Rust。
-- 网络：Rust `reqwest` 调用 ChatGPT 后端只读额度接口。
-- 测试：Vitest 覆盖前端格式化与快照合并逻辑；Rust 覆盖 Codex 响应解析逻辑。
+- 桌面组件：WidgetKit 原生小、中两种尺寸，根据实际响应展示五小时和每周额度；只有周窗口时使用单窗口布局。
+- 状态栏胶囊：AppKit 原生菜单栏入口，显示五小时剩余额度、额度环和重置倒计时，按完整文字调整宽度。
+- 点击详情：点击胶囊打开或关闭原生弹出卡片，查看当前模型、重置时间与同步状态，手动刷新、设置开机启动或退出；右键可打开托盘菜单。
+- 数据边界：胶囊只展示五小时额度，不用周额度替代；缺失或刷新失败时保留最近有效五小时值并标记过期，没有有效旧值时显示不可用。
+- 同步：启动、每分钟后台轮询、唤醒、重新打开及手动操作触发刷新；共享快照成功发布后请求 WidgetKit 重新加载。
+- 隐私：共享容器只保存显示快照，不持久化 token、账户标识或原始额度响应。
 
-## 主要功能
+## 代码入口与技术栈
 
-- 悬浮额度卡片：展示 Codex 5 小时窗口剩余额度、周额度、重置时间和重置机会。
-- 桌面行为：无边框、透明、置顶、可拖动、可锁定鼠标穿透、可托盘显示/隐藏/刷新/解锁/退出。
-- 跨平台构建：同一套前端 UI/动效代码输出 Windows unsigned 包和 macOS Universal unsigned 包。
-- 状态兜底：接口失败时保留上次成功数据并标记 stale；登录失效、限流、接口变形会给安全提示。
-- 偏好保存：锁定状态、置顶状态、固定 provider、轮播间隔、语言写入 Tauri app config 目录，带 `.bak` 备份恢复。
-- 预留扩展：类型层已有 `codex | claude` provider 结构，但当前只启用 Codex。
+Tauri 启动入口 `src-tauri/src/main.rs` 调用 `src-tauri/src/lib.rs`，先建立托盘与原生胶囊，再启动后台同步。一次刷新同时更新胶囊展示和 WidgetKit 共享快照。
 
-## 关键文件
+- React 19、TypeScript、Vite：前端与浏览器 mock 开发环境。
+- Tauri 2、Rust：后台同步、额度解析、托盘与应用生命周期。
+- `src-tauri/src/codex.rs`：本机登录态读取及只读额度请求。
+- `src-tauri/src/status_bar.rs`：五小时窗口选择、过期状态、百分比与重置倒计时格式化。
+- `src-tauri/src/status_popover.swift`：AppKit 胶囊、完整点击区域与原生详情交互。
+- `src-tauri/build.rs`：仅在 macOS 编译 Swift 桥接。
+- `native-widget/CodexLensWidgetExtension/CodexLensWidget.swift`：桌面组件布局、快照解析与时间线。
+- `scripts/check-status-popover.sh`：使用 fixture 验证胶囊不同区域及宽度变化后的点击。
+- `scripts/package-codex-lens-macos.sh`：签名并嵌入 WidgetKit 扩展，生成一个整合应用。
 
-- `src/App.tsx`：前端状态机，负责刷新、退避、stale 处理、消费中提示、轮播与偏好保存。
-- `src/components/QuotaCard.tsx`：悬浮球、展开卡片 UI 与交互按钮。
-- `src/lib/bridge.ts`：浏览器 mock 与 Tauri command 桥接。
-- `src/lib/format.ts`：额度百分比、健康档位、重置时间格式化、快刷新判断。
-- `src/lib/snapshots.ts`：新旧 snapshot 合并与失败保留旧数据逻辑。
-- `src-tauri/src/codex.rs`：读取本地 Codex auth、拼接请求头、调用额度与 reset credits 接口、解析响应。
-- `src-tauri/src/lib.rs`：Tauri command、缓存锁、偏好持久化、托盘、窗口状态、锁定穿透。
-- `.github/workflows/release.yml`：生成 Windows unsigned 和 macOS Universal unsigned 发布包。
+## 构建边界
 
-## 数据与安全边界
+桌面组件和原生状态栏胶囊都是 macOS 功能。现有 CI 仍保留 Windows 和 macOS Universal 的 Tauri 构建，但普通 Tauri 包不自动嵌入 WidgetKit 扩展。包含桌面组件的本地整合包需使用同一 Apple Team 签名主应用与扩展，详见 [README](../README.md) 和 [发布说明](RELEASE.md)。
 
-- 只读取本机 Codex 登录文件，默认路径来自 `CODEX_HOME` 或用户目录 `.codex/auth.json`。
-- 不复制 token，不上传 token 到第三方，不记录原始接口响应。
-- 请求头里的 token 与账号 ID 视为敏感信息。
-- 接口响应限制为 1 MB，auth 文件限制为 256 KB。
-- 不兑换重置机会，不修改账号设置。
-- Codex 额度接口不是公开稳定 API。字段或认证变化时应显示不可用，不应猜测额度。
-
-## 运行与验证
+## 验证
 
 ```bash
-npm install
-npm run dev
-npm run test
+npm test
 npm run build
-npm run tauri dev
+cargo test --manifest-path src-tauri/Cargo.toml
+cargo check --manifest-path src-tauri/Cargo.toml
+scripts/check-status-popover.sh
 ```
 
-浏览器 `npm run dev` 使用 mock 数据；真实额度读取只能在 Tauri 桌面环境中验证。
-
-## 维护重点
-
-- 用真实 Codex Desktop 登录态做 Tauri 集成验证，尤其是登录过期、401/403/429、断网、响应字段变化。
-- 确认悬浮窗锁定穿透、托盘/菜单栏解锁、多显示器恢复、开机启动在 Windows/macOS 的实机行为。
-- 后续视觉调整默认只改共享 React/CSS，不维护 Windows/macOS 两套 UI。
-- 若启用 Claude provider，先补 provider adapter、类型收敛、轮播/固定逻辑和失败隔离测试。
-- 发布前补齐签名、公证、安装包扫描和日志隐私审计。
+原生点击检查需要活动的 macOS 图形会话，使用 fixture，不读取真实账号。浏览器 mock、单元测试与本地构建不能代替真实额度、签名整合安装和实机验收。

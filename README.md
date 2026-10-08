@@ -1,14 +1,27 @@
 # Codex Lens
 
-Codex Lens is a local-first macOS utility that reads the current Codex model and quota state from an existing Codex Desktop login, then publishes a display-only snapshot to an integrated WidgetKit widget. It is an independent, unofficial project and is not affiliated with or endorsed by OpenAI.
+Codex Lens is a local-first macOS utility with two native surfaces: a **desktop widget** powered by WidgetKit and a **menu bar status capsule** powered by AppKit. It reads the current Codex model and quota state from an existing Codex Desktop login and keeps both surfaces updated. It is an independent, unofficial project and is not affiliated with or endorsed by OpenAI.
+
+**中文简介：Codex Lens 同时提供桌面组件和状态栏胶囊。** 桌面组件支持小、中两种尺寸，展示服务返回的五小时与每周额度；状态栏胶囊常驻 macOS 菜单栏，显示五小时剩余额度、额度环和重置倒计时，点击即可展开当前模型、重置时间与同步状态，并进行手动刷新、开机启动设置或退出。
 
 ## Features
 
 - Shows the active model, weekly limit, optional rolling five-hour limit, and reset times returned by the quota service.
 - Provides Small and Medium WidgetKit families. A weekly-only response uses a single-window layout; a five-hour window appears automatically when present and disappears automatically when absent.
+- Provides a native menu bar status capsule with a quota ring, five-hour remaining percentage, and reset countdown. Its width adapts to the full countdown text.
+- Opens a native details popover when the capsule is clicked, with current model, reset time, sync state, **Refresh now**, **Start at login**, and **Quit**. Clicking the capsule only toggles the popover; refreshing is an explicit action.
 - Keeps a last-known-good display-only snapshot so a damaged response or transient refresh failure does not fabricate quota data.
 - Uses an Apple Team-ID-prefixed App Group shared only by the host app and its embedded Widget extension.
 - Performs no telemetry, analytics, crash reporting, account changes, or reset-credit redemption.
+
+## Desktop widget and status capsule
+
+| Surface | Location | Display and interaction |
+| --- | --- | --- |
+| Desktop widget (桌面组件) | macOS desktop / Widget Gallery | Small and Medium layouts show available five-hour and weekly quota windows, model, reset times, and sync state. A weekly-only response remains a weekly-only widget. |
+| Menu bar status capsule (状态栏胶囊) | macOS menu bar | A compact quota ring, five-hour remaining percentage, and reset countdown; click to open or close the native details popover. Right-click opens the tray menu. |
+
+The status capsule uses the five-hour window only. If that window is absent or invalid, it retains a previous valid five-hour value with a stale indicator, or displays unavailable when no previous value exists. It does not substitute weekly quota for five-hour quota. The desktop widget continues to show whichever supported windows the service actually returns.
 
 ## Widget previews and screenshots
 
@@ -37,10 +50,11 @@ npm run test
 npm run build
 cargo test --manifest-path src-tauri/Cargo.toml
 cargo check --manifest-path src-tauri/Cargo.toml
+scripts/check-status-popover.sh
 npm run tauri dev
 ```
 
-Browser development uses mock data. Live quota reads and WidgetKit integration require the Tauri application on a Mac with an existing Codex Desktop login.
+Browser development uses mock data. Live quota reads, the status capsule, and WidgetKit integration require the Tauri application on a Mac with an existing Codex Desktop login. The popover check uses fixture data to verify clicks across the capsule, including after its width changes; it requires an active macOS graphical session.
 
 To build the Widget extension without signing:
 
@@ -74,16 +88,16 @@ The selected Xcode Team expands this to `<YOUR_TEAM_ID>.dev.codexlens.shared`. U
 
 The shared files are `widget-snapshot.json` and `widget-snapshot.last-known-good.json`. They contain only schema/version information, active model, normalized limit windows, timestamps, source, and stale state—never a token, cookie, account ID, or raw quota response.
 
-## Install and add the widget
+## Install, use the status capsule, and add the widget
 
 1. Build the signed integrated app with the same Apple Team for the app and extension.
 2. Install the resulting `Codex Lens.app` locally and launch it.
-3. Choose **Refresh now** from the tray menu to request a live snapshot.
-4. On the desktop, choose **Edit Widgets**, search for **Codex Lens**, then add the Small or Medium widget.
+3. Find the status capsule in the macOS menu bar. Click it to open the details popover and choose **Refresh now** to request a live snapshot. **Start at login** and **Quit** are available in the same popover or the right-click tray menu.
+4. On the desktop, choose **Edit Widgets**, search for **Codex Lens**, then add the Small or Medium desktop widget. The status capsule also works before a desktop widget has been added.
 
 ## Refresh behavior and development troubleshooting
 
-The app refreshes at startup, after wake, on manual refresh, and when reopened. After publishing a valid snapshot it calls `WidgetCenter.reloadTimelines(ofKind: "CodexLensWidget")`.
+The app refreshes at startup, every minute in the background, after wake, on manual refresh, and when reopened. Each completed refresh updates the status capsule and its details. After publishing a valid shared snapshot it calls `WidgetCenter.reloadTimelines(ofKind: "CodexLensWidget")`. WidgetKit controls the actual desktop-widget refresh schedule.
 
 During development, macOS can keep an old Widget extension process alive after a new application has been installed. Use the explicit development-only command below only when that happens:
 
@@ -102,6 +116,8 @@ Codex Lens reads the local Codex Desktop login only to make the quota requests n
 - Codex quota responses are not a public stable API; an unsupported response is shown as unavailable or stale rather than guessed.
 - A signed local install requires a valid Apple Development Team and matching entitlements.
 - The Widget can display only windows returned by the current quota response. When only the weekly window exists, it intentionally shows only that window.
+- The status capsule displays five-hour quota only; missing five-hour data appears as stale or unavailable even when a weekly window is available.
+- The native desktop widget and status capsule are macOS features. Windows CI builds do not include WidgetKit or the AppKit capsule.
 
 ## Frequently Asked Questions
 
@@ -155,7 +171,15 @@ The selected Team may be missing, the signing identity may not match the provisi
 
 ### How do I refresh data manually?
 
-Launch Codex Lens and use **Refresh now** in its tray menu. A successful snapshot publish requests a timeline reload for the Codex Lens widget kind.
+Launch Codex Lens, click the status capsule, and use **Refresh now** in its details popover. The same action is available in the right-click tray menu. A successful snapshot publish requests a timeline reload for the Codex Lens widget kind.
+
+### Can I use the status capsule without adding a desktop widget?
+
+Yes. Launch the host app to use the menu bar capsule and details popover. Adding a desktop widget is optional; it requires the signed integrated app with its embedded WidgetKit extension.
+
+### Why can the desktop widget show weekly quota while the capsule says unavailable?
+
+The desktop widget supports weekly-only data, while the status capsule intentionally displays five-hour quota only. If the service does not return a valid five-hour window, the capsule shows unavailable or marks a retained five-hour value as stale.
 
 ### Do I need to clear WidgetKit data or remove every desktop widget?
 
